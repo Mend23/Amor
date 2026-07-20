@@ -306,6 +306,18 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
+
+        .suspicion-indicator {
+            position: absolute;
+            font-size: 16px;
+            pointer-events: none;
+            animation: float 1s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
     </style>
 </head>
 <body>
@@ -428,6 +440,7 @@
                 this.group.position.set(0, 0, 0);
                 this.velocity = { x: 0, y: 0 };
                 this.speed = 3;
+                this.wasRude = false;
                 scene.add(this.group);
             }
             
@@ -455,6 +468,8 @@
                 this.alive = true;
                 this.suspicion = 0;
                 this.observedCrimes = 0;
+                this.observedRudeness = 0;
+                this.viewDistance = 150;
                 
                 // Cuerpo
                 const bodyGeometry = new THREE.CapsuleGeometry(18, 38, 4, 8);
@@ -494,7 +509,7 @@
                 scene.add(this.group);
             }
             
-            update(playerPos) {
+            update(playerPos, crimeJustCommitted = false, playerWasRude = false) {
                 if (!this.alive) {
                     this.group.visible = false;
                     this.nameLabel.style.display = 'none';
@@ -515,13 +530,21 @@
                 this.nameLabel.style.left = (screenPos.x - 30) + 'px';
                 this.nameLabel.style.top = (screenPos.y - 50) + 'px';
 
-                if (this.type === 'rival' && distance < 100) {
-                    this.suspicion = Math.min(100, this.suspicion + 0.5);
-                    this.nameLabel.style.color = `rgb(0, ${Math.floor(255 * this.suspicion / 100)}, 0)`;
+                // Si está cerca y cometes un crimen, lo ve
+                if (crimeJustCommitted && distance < this.viewDistance) {
+                    this.observedCrimes++;
+                    this.suspicion = Math.min(100, this.suspicion + 30);
                 }
 
-                if (this.type === 'police' && distance < 150) {
-                    this.suspicion = Math.min(100, this.suspicion + 2);
+                // Si eres grosero cerca de alguien, lo ve
+                if (playerWasRude && distance < this.viewDistance) {
+                    this.observedRudeness++;
+                    this.suspicion = Math.min(100, this.suspicion + 20);
+                }
+
+                // Mostrar cambio de suspicion
+                if (this.suspicion > 50) {
+                    this.nameLabel.style.color = `rgb(255, ${Math.floor(255 * (1 - this.suspicion/100))}, 0)`;
                 }
                 
                 return distance;
@@ -570,6 +593,14 @@
             gameOverScreen.classList.add('show');
             player.setVelocity(0, 0);
         }
+
+        function calculateReputationImpact() {
+            let totalSuspicion = 0;
+            characters.forEach(char => {
+                totalSuspicion += char.observedCrimes + char.observedRudeness;
+            });
+            return Math.max(0, 100 - totalSuspicion * 2);
+        }
         
         // ================== INICIALIZAR JUEGO ==================
         const player = new Player();
@@ -589,6 +620,7 @@
         let sempaiKnowsAboutCrimes = false;
         let policeAlertLevel = 0;
         let crimesCommitted = 0;
+        let lastCrimeTime = -1000;
         
         // ================== CONTROLES ==================
         const keys = {};
@@ -686,37 +718,37 @@
                         endGame('💀 SEMPAI LO DESCUBRIÓ...\n"¿Qué has hecho?"\n*Ella enloqueció y te mató*\n*Luego se suicidó*');
                     }
                 } else if (currentWeapon) {
+                    // Cometer crimen
+                    lastCrimeTime = gameTime;
+                    let crimeMsg = '';
+                    
                     if (currentWeapon === 'poison') {
                         closestChar.eliminate();
-                        showWarning(`☠️ ${closestChar.name} fue envenenada...`);
-                        reputation -= 20;
+                        crimeMsg = `☠️ ${closestChar.name} fue envenenada...`;
                         obsesionLevel += 30;
-                        crimesCommitted++;
                         policeAlertLevel += 15;
-                        currentWeapon = null;
                     } else if (currentWeapon === 'knife') {
                         closestChar.eliminate();
-                        showWarning(`💀 ${closestChar.name} fue eliminada...`);
-                        reputation -= 30;
+                        crimeMsg = `💀 ${closestChar.name} fue eliminada...`;
                         obsesionLevel += 40;
-                        crimesCommitted++;
                         policeAlertLevel += 25;
-                        currentWeapon = null;
                     } else if (currentWeapon === 'trap') {
                         closestChar.eliminate();
-                        showWarning(`💥 ${closestChar.name} cayó en la trampa...`);
-                        reputation -= 25;
+                        crimeMsg = `💥 ${closestChar.name} cayó en la trampa...`;
                         obsesionLevel += 25;
-                        crimesCommitted++;
                         policeAlertLevel += 20;
-                        currentWeapon = null;
                     } else if (currentWeapon === 'camera') {
-                        showWarning(`📸 Evidencia de ${closestChar.name} recopilada...`);
+                        crimeMsg = `📸 Evidencia de ${closestChar.name} recopilada...`;
                         obsesionLevel += 10;
                     }
+                    
+                    showWarning(crimeMsg);
+                    crimesCommitted++;
+                    currentWeapon = null;
                 } else {
-                    document.getElementById('gameInfo').textContent = `💬 Hablaste con ${closestChar.name}`;
-                    reputation = Math.min(100, reputation + 5);
+                    // Interacción normal
+                    document.getElementById('gameInfo').textContent = `💬 Hablaste amablemente con ${closestChar.name}`;
+                    player.wasRude = false;
                 }
                 interactionCooldown = 30;
             }
@@ -725,10 +757,10 @@
         document.getElementById('actionBtn').addEventListener('click', () => {
             if (gameOver) return;
             if (interactionCooldown === 0) {
-                document.getElementById('gameInfo').textContent = '💀 Acción especial en modo silencioso...';
-                obsesionLevel += 20;
-                policeAlertLevel += 5;
-                interactionCooldown = 40;
+                document.getElementById('gameInfo').textContent = '😠 ¡Fuiste grosera con alguien!';
+                player.wasRude = true;
+                obsesionLevel += 5;
+                interactionCooldown = 30;
             }
         });
         
@@ -761,9 +793,18 @@
             handleKeyboardInput();
             player.update();
             
+            // Detectar si acaban de cometer un crimen o fueron groseros
+            let crimeJustCommitted = (gameTime - lastCrimeTime) < 2;
+            let playerWasRude = player.wasRude;
+            
             characters.forEach(char => {
-                const dist = char.update(player.group.position);
+                char.update(player.group.position, crimeJustCommitted, playerWasRude);
             });
+
+            // Limpiar estado grosería
+            if (gameTime % 120 === 0) {
+                player.wasRude = false;
+            }
             
             // Actualizar tiempo
             gameTime++;
@@ -772,8 +813,8 @@
             document.getElementById('time').textContent = 
                 `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 
-            // Reputación y Obsesión
-            reputation = Math.max(0, reputation - 0.05);
+            // Calcular reputación basada en lo que vieron
+            reputation = calculateReputationImpact();
             obsesionLevel = Math.min(100, obsesionLevel);
             
             document.getElementById('obsesionLevel').textContent = Math.floor(obsesionLevel);
@@ -784,8 +825,9 @@
             const sempaiStatusDiv = document.getElementById('sempaiStatus');
             const sempaiObsesionDiv = document.getElementById('sempaiObsesion');
 
-            if (sempaiKnowsAboutCrimes) {
-                sempaiStatusDiv.textContent = '😱 ¡ASUSTADO!';
+            if (sempai.observedCrimes > 0 || sempai.observedRudeness > 2) {
+                sempaiKnowsAboutCrimes = true;
+                sempaiStatusDiv.textContent = '😱 ¡SABE!';
                 sempaiStatusDiv.style.color = '#ff0000';
             } else if (sempaiAffection > 60) {
                 sempaiStatusDiv.textContent = '😍 Enamorado';
@@ -811,23 +853,17 @@
 
             // Condiciones de Game Over
             if (reputation <= 0) {
-                endGame('💀 FIN DEL JUEGO\n\nTu reputación llegó a cero...\nSempai y los demás te humillaron\nNadie te respeta...\nEres un fracaso.');
+                endGame('💀 FIN DEL JUEGO\n\nTu reputación llegó a cero...\nSempai y los demás te humillan\n"¿Quién te crees que eres?"');
             }
 
             if (policeAlertLevel >= 100) {
                 endGame('🚨 ATRAPADA 🚨\n\n¡La policía descubrió tus crímenes!\nTodas tus acciones han sido documentadas.\nNo hay escape...');
-            }
-
-            if (crimesCommitted > 0 && Math.random() < 0.01 && !sempaiKnowsAboutCrimes) {
-                sempaiKnowsAboutCrimes = true;
-                showWarning('💔 ¡Sempai se enteró de tus actos!');
             }
             
             if (interactionCooldown > 0) interactionCooldown--;
             
             if (gameTime > 18 * 60) {
                 gameTime = 8 * 60;
-                reputation -= 10;
             }
             
             renderer.render(scene, camera);
