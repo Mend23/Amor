@@ -307,16 +307,85 @@
             50% { opacity: 0.5; }
         }
 
-        .suspicion-indicator {
-            position: absolute;
-            font-size: 16px;
-            pointer-events: none;
-            animation: float 1s ease-in-out infinite;
+        .principal-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
         }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+        .principal-dialog.show {
+            display: flex;
+        }
+
+        .dialog-box {
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid #ff1493;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 500px;
+            color: #ffff00;
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .dialog-question {
+            color: #ff6600;
+            font-weight: bold;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .excuse-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .excuse-btn {
+            width: 100%;
+            padding: 15px;
+            background: rgba(139, 0, 0, 0.8);
+            border: 2px solid #ff1493;
+            color: #ffff00;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .excuse-btn:hover {
+            background: rgba(255, 0, 0, 1);
+            box-shadow: 0 0 15px #ff1493;
+        }
+
+        .excuse-btn:active {
+            transform: scale(0.95);
+        }
+
+        .npc-fleeing {
+            color: #00ff00 !important;
+            animation: blink 0.2s infinite;
+        }
+
+        .director-animation {
+            animation: directorAppear 0.5s ease-out;
+        }
+
+        @keyframes directorAppear {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
@@ -373,6 +442,15 @@
         </div>
     </div>
 
+    <div class="principal-dialog" id="principalDialog">
+        <div class="dialog-box director-animation">
+            <div style="font-size: 48px; margin-bottom: 20px;">👨‍💼</div>
+            <div style="color: #ff6600; margin-bottom: 15px;">DIRECTOR DEL COLEGIO</div>
+            <div id="dialogText" class="dialog-question"></div>
+        </div>
+        <div class="excuse-buttons" id="excuseButtons"></div>
+    </div>
+
     <div class="game-over-screen" id="gameOverScreen">
         <div class="game-over-text" id="gameOverText"></div>
         <button onclick="location.reload()" style="width: 150px; height: 50px; font-size: 16px; margin-top: 40px;">REINICIAR</button>
@@ -409,6 +487,7 @@
         let currentWeapon = null;
         let gameState = 'normal';
         let gameOver = false;
+        let inDialogue = false;
         
         // ================== PLAYER ==================
         class Player {
@@ -464,12 +543,14 @@
             constructor(name, x, y, color, type = 'normal') {
                 this.name = name;
                 this.group = new THREE.Group();
-                this.type = type; // 'normal', 'rival', 'sempai', 'police'
+                this.type = type;
                 this.alive = true;
                 this.suspicion = 0;
                 this.observedCrimes = 0;
                 this.observedRudeness = 0;
                 this.viewDistance = 150;
+                this.isReporting = false;
+                this.targetDirection = null;
                 
                 // Cuerpo
                 const bodyGeometry = new THREE.CapsuleGeometry(18, 38, 4, 8);
@@ -520,6 +601,21 @@
                 const dy = playerPos.y - this.group.position.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
+                // Si está reportando, va a la dirección
+                if (this.isReporting) {
+                    this.nameLabel.classList.add('npc-fleeing');
+                    // Huir hacia arriba (a la dirección)
+                    this.group.position.y += 5;
+                    if (this.group.position.y > 500) {
+                        this.group.visible = false;
+                        this.nameLabel.style.display = 'none';
+                    }
+                    const screenPos = getScreenPosition(this.group.position);
+                    this.nameLabel.style.left = (screenPos.x - 30) + 'px';
+                    this.nameLabel.style.top = (screenPos.y - 50) + 'px';
+                    return;
+                }
+
                 if (Math.random() < 0.02) {
                     const angle = Math.random() * Math.PI * 2;
                     this.group.position.x += Math.cos(angle) * 2;
@@ -531,13 +627,15 @@
                 this.nameLabel.style.top = (screenPos.y - 50) + 'px';
 
                 // Si está cerca y cometes un crimen, lo ve
-                if (crimeJustCommitted && distance < this.viewDistance) {
+                if (crimeJustCommitted && distance < this.viewDistance && !this.isReporting) {
                     this.observedCrimes++;
-                    this.suspicion = Math.min(100, this.suspicion + 30);
+                    this.suspicion = 100;
+                    this.isReporting = true; // ¡CORRE A REPORTAR!
+                    document.getElementById('gameInfo').textContent = `🏃 ¡${this.name} CORRE A LA DIRECCIÓN!`;
                 }
 
                 // Si eres grosero cerca de alguien, lo ve
-                if (playerWasRude && distance < this.viewDistance) {
+                if (playerWasRude && distance < this.viewDistance && !this.isReporting) {
                     this.observedRudeness++;
                     this.suspicion = Math.min(100, this.suspicion + 20);
                 }
@@ -597,9 +695,68 @@
         function calculateReputationImpact() {
             let totalSuspicion = 0;
             characters.forEach(char => {
-                totalSuspicion += char.observedCrimes + char.observedRudeness;
+                if (char.isReporting) {
+                    totalSuspicion += 50; // Penalización alta por fuga
+                } else {
+                    totalSuspicion += char.observedCrimes + char.observedRudeness;
+                }
             });
             return Math.max(0, 100 - totalSuspicion * 2);
+        }
+
+        function showExcuseDialog() {
+            inDialogue = true;
+            player.setVelocity(0, 0);
+            
+            const excuses = [
+                { text: "No fue nada, Director. Solo estaban jugando.", result: 'random' },
+                { text: "Vimos algo en el patio, pero ya pasó.", result: 'random' },
+                { text: "Creo que malinterpretaron la situación.", result: 'likely_fail' },
+                { text: "Fue un accidente. Todo está bajo control.", result: 'random' },
+                { text: "No sé de qué hablan. Están exagerando.", result: 'likely_fail' }
+            ];
+
+            const dialogBox = document.getElementById('principalDialog');
+            const dialogText = document.getElementById('dialogText');
+            const excuseButtons = document.getElementById('excuseButtons');
+
+            dialogText.textContent = '¿Qué pasó exactamente aquí?';
+            excuseButtons.innerHTML = '';
+
+            excuses.forEach((excuse, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'excuse-btn';
+                btn.textContent = excuse.text;
+                btn.onclick = () => {
+                    handleExcuse(excuse.result);
+                    dialogBox.classList.remove('show');
+                };
+                excuseButtons.appendChild(btn);
+            });
+
+            dialogBox.classList.add('show');
+        }
+
+        function handleExcuse(result) {
+            inDialogue = false;
+            
+            if (result === 'random') {
+                if (Math.random() > 0.5) {
+                    document.getElementById('gameInfo').textContent = '✅ Director: "De acuerdo, ten cuidado"';
+                    reputation = Math.min(100, reputation + 10);
+                } else {
+                    document.getElementById('gameInfo').textContent = '❌ Director: "No me crees... eres culpable"';
+                    reputation = Math.max(0, reputation - 30);
+                }
+            } else if (result === 'likely_fail') {
+                if (Math.random() > 0.3) {
+                    document.getElementById('gameInfo').textContent = '❌ Director: "¡Mentirosa! Llamaré a tus padres"';
+                    reputation = Math.max(0, reputation - 40);
+                } else {
+                    document.getElementById('gameInfo').textContent = '✅ Director: "Espero que sea verdad..."';
+                    reputation = Math.min(100, reputation + 5);
+                }
+            }
         }
         
         // ================== INICIALIZAR JUEGO ==================
@@ -621,6 +778,7 @@
         let policeAlertLevel = 0;
         let crimesCommitted = 0;
         let lastCrimeTime = -1000;
+        let waitingForDirector = false;
         
         // ================== CONTROLES ==================
         const keys = {};
@@ -674,7 +832,7 @@
             }
             
             joystickElement.style.transform = `translate(${joystickPos.x * 35}px, ${joystickPos.y * 35}px)`;
-            player.setVelocity(joystickPos.x, joystickPos.y);
+            if (!inDialogue) player.setVelocity(joystickPos.x, joystickPos.y);
         }
 
         window.useWeapon = function(weapon) {
@@ -690,7 +848,7 @@
         }
         
         document.getElementById('interactBtn').addEventListener('click', () => {
-            if (gameOver) return;
+            if (gameOver || inDialogue) return;
 
             let closestChar = null;
             let closestDist = Infinity;
@@ -709,7 +867,6 @@
             
             if (closestChar && interactionCooldown === 0) {
                 if (closestChar.type === 'sempai') {
-                    // Interacción con Sempai
                     sempaiAffection += 15;
                     obsesionLevel += 20;
                     document.getElementById('gameInfo').textContent = `💕 ¡Sempai te miró!`;
@@ -718,7 +875,6 @@
                         endGame('💀 SEMPAI LO DESCUBRIÓ...\n"¿Qué has hecho?"\n*Ella enloqueció y te mató*\n*Luego se suicidó*');
                     }
                 } else if (currentWeapon) {
-                    // Cometer crimen
                     lastCrimeTime = gameTime;
                     let crimeMsg = '';
                     
@@ -746,7 +902,6 @@
                     crimesCommitted++;
                     currentWeapon = null;
                 } else {
-                    // Interacción normal
                     document.getElementById('gameInfo').textContent = `💬 Hablaste amablemente con ${closestChar.name}`;
                     player.wasRude = false;
                 }
@@ -755,7 +910,7 @@
         });
         
         document.getElementById('actionBtn').addEventListener('click', () => {
-            if (gameOver) return;
+            if (gameOver || inDialogue) return;
             if (interactionCooldown === 0) {
                 document.getElementById('gameInfo').textContent = '😠 ¡Fuiste grosera con alguien!';
                 player.wasRude = true;
@@ -765,6 +920,8 @@
         });
         
         function handleKeyboardInput() {
+            if (inDialogue) return;
+            
             let moveX = 0;
             let moveY = 0;
             
@@ -793,7 +950,7 @@
             handleKeyboardInput();
             player.update();
             
-            // Detectar si acaban de cometer un crimen o fueron groseros
+            // Detectar si acaban de cometer un crimen
             let crimeJustCommitted = (gameTime - lastCrimeTime) < 2;
             let playerWasRude = player.wasRude;
             
@@ -820,6 +977,17 @@
             document.getElementById('obsesionLevel').textContent = Math.floor(obsesionLevel);
             document.getElementById('reputation').textContent = Math.floor(reputation);
             document.getElementById('reputationFill').style.width = reputation + '%';
+
+            // Verificar si alguien está reportando
+            let someoneReporting = characters.some(char => char.isReporting && char.alive);
+            if (someoneReporting && !waitingForDirector) {
+                waitingForDirector = true;
+                setTimeout(() => {
+                    if (!gameOver) {
+                        showExcuseDialog();
+                    }
+                }, 2000);
+            }
 
             // Estado de Sempai
             const sempaiStatusDiv = document.getElementById('sempaiStatus');
