@@ -77,22 +77,26 @@ var pulse = function(kx, ky) {
   return (1 + 0.1 * Math.sin(Date.now() * 0.007 + kx + ky));
 };
 
+// Corrige rotación usando temporales para evitar usar p[0] modificado
 var transform = function(points, tx, ty, sx, sy, rot) {
   return points.map(function(p) {
-    p = scaleAndTranslate(p, sx, sy, tx, ty);
-    p[0] -= tx;
-    p[1] -= ty;
-    p[0] = p[0] * Math.cos(rot) + p[1] * Math.sin(rot);
-    p[1] = p[1] * Math.cos(rot) - p[0] * Math.sin(rot);
-    p[0] += tx;
-    p[1] += ty;
-    return p;
+    var q = scaleAndTranslate(p, sx, sy, tx, ty);
+    var x = q[0] - tx;
+    var y = q[1] - ty;
+    var xr = x * Math.cos(rot) + y * Math.sin(rot);
+    var yr = y * Math.cos(rot) - x * Math.sin(rot);
+    return [tx + xr, ty + yr];
   });
 };
 
 var pointsCount = pointsOrigin.length;
 var theta = 0;
 var dTheta = mobile? -0.05 : -0.02;
+
+// Establece estilo de trazo para que el corazón se vea sobre fondo negro
+ctx.strokeStyle = 'rgba(255,0,0,1)'; // rojo sólido
+ctx.lineWidth = mobile ? 1.2 : 2.5;
+ctx.lineJoin = 'round';
 
 (function loop() {
   var tx = width / 2;
@@ -103,7 +107,7 @@ var dTheta = mobile? -0.05 : -0.02;
   var p = transform(pointsOrigin, tx, ty, scale, scale, rot);
   
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
+  ctx.fillStyle = "rgba(255, 0, 0, 0.05)";
   
   for (var i = 0; i < traceCount; i++) {
     ctx.beginPath();
