@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amor School - Mobile Game</title>
+    <title>Amor School - Dark Edition</title>
     <style>
         * {
             margin: 0;
@@ -17,7 +17,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             font-family: 'Arial', sans-serif;
             overflow: hidden;
         }
@@ -26,7 +26,7 @@
             width: 100vw;
             height: 100vh;
             position: relative;
-            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);
+            background: linear-gradient(to bottom, #2a2a4e 0%, #1a1a3e 100%);
             overflow: hidden;
         }
         
@@ -49,28 +49,31 @@
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff00;
             padding: 15px;
             border-radius: 8px;
             font-size: 14px;
             z-index: 10;
             pointer-events: auto;
+            border: 2px solid #ff1493;
         }
         
         .objective {
             position: absolute;
             top: 10px;
             right: 10px;
-            background: rgba(255, 0, 0, 0.8);
-            color: white;
+            background: rgba(255, 0, 0, 0.9);
+            color: #ffff00;
             padding: 15px;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 13px;
             text-align: center;
             z-index: 10;
             pointer-events: auto;
-            max-width: 200px;
+            max-width: 220px;
+            border: 2px solid #ff1493;
+            font-weight: bold;
         }
         
         .controls {
@@ -79,8 +82,8 @@
             left: 20px;
             width: 120px;
             height: 120px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid #fff;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #ff1493;
             border-radius: 50%;
             display: flex;
             justify-content: center;
@@ -92,11 +95,12 @@
         .joystick-stick {
             width: 50px;
             height: 50px;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 50%;
             cursor: pointer;
             position: absolute;
             transition: all 0.05s;
+            box-shadow: 0 0 10px #ff1493;
         }
         
         .buttons {
@@ -114,11 +118,11 @@
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            border: none;
+            border: 2px solid #ff1493;
             font-size: 20px;
             cursor: pointer;
-            background: rgba(255, 100, 100, 0.8);
-            color: white;
+            background: rgba(139, 0, 0, 0.8);
+            color: #ffff00;
             font-weight: bold;
             transition: all 0.2s;
             pointer-events: auto;
@@ -126,7 +130,8 @@
         
         button:active {
             transform: scale(0.9);
-            background: rgba(255, 50, 50, 1);
+            background: rgba(255, 0, 0, 1);
+            box-shadow: 0 0 15px #ff1493;
         }
         
         .info {
@@ -134,19 +139,21 @@
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
+            background: rgba(0, 0, 0, 0.9);
+            color: #ffff00;
             padding: 10px 20px;
             border-radius: 8px;
             font-size: 12px;
             text-align: center;
             z-index: 10;
             pointer-events: auto;
+            border: 2px solid #ff6600;
+            max-width: 300px;
         }
 
         .character-name {
             position: absolute;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.95);
             color: #ff1493;
             padding: 5px 10px;
             border-radius: 4px;
@@ -154,6 +161,74 @@
             font-weight: bold;
             white-space: nowrap;
             pointer-events: none;
+            border: 1px solid #ff1493;
+        }
+
+        .inventory {
+            position: absolute;
+            top: 140px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 10;
+            pointer-events: auto;
+            border: 2px solid #ff6600;
+            max-width: 150px;
+        }
+
+        .inventory-item {
+            padding: 5px;
+            margin: 3px 0;
+            background: rgba(100, 0, 0, 0.5);
+            border-left: 3px solid #ff1493;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .inventory-item:hover {
+            background: rgba(150, 0, 0, 0.7);
+            box-shadow: 0 0 10px #ff1493;
+        }
+
+        .warning {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.95);
+            color: #ffff00;
+            padding: 30px;
+            border-radius: 12px;
+            font-size: 20px;
+            z-index: 100;
+            text-align: center;
+            border: 3px solid #ff1493;
+            display: none;
+            font-weight: bold;
+        }
+
+        .sanity-bar {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ff00;
+            width: 200px;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .sanity-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00);
+            width: 100%;
+            transition: width 0.3s;
         }
     </style>
 </head>
@@ -161,14 +236,26 @@
     <div id="gameContainer">
         <canvas id="canvas"></canvas>
         <div id="UI">
+            <div class="sanity-bar">
+                <div class="sanity-fill" id="sanityFill" style="width: 100%;"></div>
+            </div>
+
             <div class="hud">
-                <div>❤️ Amor: <span id="amorLevel">50</span>%</div>
-                <div>⏱️ Tiempo: <span id="time">8:00</span></div>
-                <div>📍 Nivel: <span id="level">1</span></div>
+                <div>❤️ Obsesión: <span id="amorLevel">0</span>%</div>
+                <div>🧠 Cordura: <span id="sanity">100</span>%</div>
+                <div>⏱️ Hora: <span id="time">8:00</span></div>
             </div>
             
             <div class="objective">
-                <div id="objectiveText">Objetivo: Acercate a Sakura</div>
+                <div id="objectiveText">Objetivo: Aléjate de rivales</div>
+            </div>
+
+            <div class="inventory" id="inventory">
+                <div style="margin-bottom: 10px; border-bottom: 1px solid #ff1493;">🎒 INVENTARIO</div>
+                <div class="inventory-item" onclick="useWeapon('poison')">💊 Veneno</div>
+                <div class="inventory-item" onclick="useWeapon('knife')">🔪 Cuchillo</div>
+                <div class="inventory-item" onclick="useWeapon('trap')">🪤 Trampa</div>
+                <div class="inventory-item" onclick="useWeapon('camera')">📷 Cámara</div>
             </div>
             
             <div class="controls">
@@ -176,13 +263,15 @@
             </div>
             
             <div class="buttons">
-                <button id="interactBtn" title="Interactuar">🎤</button>
-                <button id="actionBtn" title="Acción">💝</button>
+                <button id="interactBtn" title="Interactuar">🎯</button>
+                <button id="actionBtn" title="Acción Especial">💀</button>
             </div>
             
             <div class="info">
-                <div id="gameInfo">Toca a los personajes para interactuar</div>
+                <div id="gameInfo">🕷️ Bienvenido a la academia... Ten cuidado</div>
             </div>
+
+            <div class="warning" id="warning"></div>
         </div>
     </div>
 
@@ -191,7 +280,7 @@
         // ================== GAME ENGINE ==================
         const canvas = document.getElementById('canvas');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB);
+        scene.background = new THREE.Color(0x1a1a2e);
         
         const camera = new THREE.OrthographicCamera(
             window.innerWidth / -2, window.innerWidth / 2,
@@ -207,12 +296,15 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         
         // Luz
-        const light = new THREE.DirectionalLight(0xffffff, 1);
+        const light = new THREE.DirectionalLight(0xffffff, 0.8);
         light.position.set(200, 200, 300);
         scene.add(light);
         
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambientLight = new THREE.AmbientLight(0xff1493, 0.4);
         scene.add(ambientLight);
+
+        let currentWeapon = null;
+        let gameState = 'normal'; // normal, eliminating
         
         // ================== PLAYER ==================
         class Player {
@@ -221,7 +313,7 @@
                 
                 // Cuerpo
                 const bodyGeometry = new THREE.CapsuleGeometry(20, 40, 4, 8);
-                const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0xffc0cb });
+                const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0x8b0000 });
                 this.body = new THREE.Mesh(bodyGeometry, bodyMaterial);
                 this.group.add(this.body);
                 
@@ -232,10 +324,10 @@
                 this.head.position.y = 35;
                 this.group.add(this.head);
                 
-                // Ojos
+                // Ojos (rojo oscuro)
                 for (let i = -1; i <= 1; i += 2) {
                     const eyeGeometry = new THREE.SphereGeometry(3, 8, 8);
-                    const eyeMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+                    const eyeMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
                     const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
                     eye.position.set(i * 5, 38, 12);
                     this.group.add(eye);
@@ -265,10 +357,13 @@
         
         // ================== PERSONAJES ==================
         class Character {
-            constructor(name, x, y, color) {
+            constructor(name, x, y, color, isRival = false) {
                 this.name = name;
                 this.group = new THREE.Group();
-                this.amorValue = 0;
+                this.obsesionValue = 0;
+                this.isRival = isRival;
+                this.alive = true;
+                this.suspicion = 0;
                 
                 // Cuerpo
                 const bodyGeometry = new THREE.CapsuleGeometry(18, 38, 4, 8);
@@ -284,9 +379,10 @@
                 this.group.add(this.head);
                 
                 // Ojos
+                const eyeColor = isRival ? 0x00ff00 : 0xff1493;
                 for (let i = -1; i <= 1; i += 2) {
                     const eyeGeometry = new THREE.SphereGeometry(2.5, 8, 8);
-                    const eyeMaterial = new THREE.MeshPhongMaterial({ color: 0xff1493 });
+                    const eyeMaterial = new THREE.MeshPhongMaterial({ color: eyeColor });
                     const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
                     eye.position.set(i * 4, 34, 10);
                     this.group.add(eye);
@@ -304,6 +400,12 @@
             }
             
             update(playerPos) {
+                if (!this.alive) {
+                    this.group.visible = false;
+                    this.nameLabel.style.display = 'none';
+                    return;
+                }
+
                 const dx = playerPos.x - this.group.position.x;
                 const dy = playerPos.y - this.group.position.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
@@ -319,13 +421,36 @@
                 const screenPos = getScreenPosition(this.group.position);
                 this.nameLabel.style.left = (screenPos.x - 30) + 'px';
                 this.nameLabel.style.top = (screenPos.y - 50) + 'px';
+
+                if (this.isRival && distance < 100) {
+                    this.suspicion = Math.min(100, this.suspicion + 0.5);
+                    this.nameLabel.style.color = `rgb(0, ${Math.floor(255 * this.suspicion / 100)}, 0)`;
+                }
                 
                 return distance;
             }
+
+            eliminate() {
+                if (this.alive) {
+                    this.alive = false;
+                    this.group.traverse((child) => {
+                        if (child.material) {
+                            child.material.color.setHex(0x4d0000);
+                            child.material.opacity = 0.5;
+                        }
+                    });
+                    return true;
+                }
+                return false;
+            }
             
             interact() {
-                this.amorValue = Math.min(100, this.amorValue + 10);
-                return this.amorValue;
+                if (this.isRival) {
+                    this.obsesionValue = Math.max(0, this.obsesionValue - 5);
+                } else {
+                    this.obsesionValue = Math.min(100, this.obsesionValue + 15);
+                }
+                return this.obsesionValue;
             }
         }
         
@@ -339,18 +464,27 @@
             
             return { x, y };
         }
+
+        function showWarning(message) {
+            const warning = document.getElementById('warning');
+            warning.textContent = message;
+            warning.style.display = 'block';
+            setTimeout(() => {
+                warning.style.display = 'none';
+            }, 3000);
+        }
         
         // ================== INICIALIZAR JUEGO ==================
         const player = new Player();
         const characters = [
-            new Character('Sakura 🌸', 150, 0, 0xff69b4),
-            new Character('Yuki ❄️', -200, 100, 0x87ceeb),
-            new Character('Akira ⚔️', 100, -200, 0xffa500),
+            new Character('Sakura 💗', 150, 0, 0xff69b4, false),
+            new Character('Rival 👑', -200, 100, 0x00ff00, true),
+            new Character('Amiga 💙', 100, -200, 0x87ceeb, false),
         ];
         
-        let gameTime = 8 * 60; // 8:00 AM
-        let amorLevel = 50;
-        let currentObjective = 0;
+        let gameTime = 8 * 60;
+        let obsesionLevel = 0;
+        let sanity = 100;
         let interactionCooldown = 0;
         
         // ================== CONTROLES ==================
@@ -408,6 +542,18 @@
             joystickElement.style.transform = `translate(${joystickPos.x * 35}px, ${joystickPos.y * 35}px)`;
             player.setVelocity(joystickPos.x, joystickPos.y);
         }
+
+        window.useWeapon = function(weapon) {
+            currentWeapon = weapon;
+            let msg = '';
+            switch(weapon) {
+                case 'poison': msg = '☠️ Veneno seleccionado'; break;
+                case 'knife': msg = '🔴 Cuchillo listo'; break;
+                case 'trap': msg = '⚠️ Trampa preparada'; break;
+                case 'camera': msg = '📸 Espiar modo'; break;
+            }
+            document.getElementById('gameInfo').textContent = msg;
+        }
         
         // Botones de acción
         document.getElementById('interactBtn').addEventListener('click', () => {
@@ -415,6 +561,7 @@
             let closestDist = Infinity;
             
             characters.forEach(char => {
+                if (!char.alive) return;
                 const dx = player.group.position.x - char.group.position.x;
                 const dy = player.group.position.y - char.group.position.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -426,18 +573,44 @@
             });
             
             if (closestChar && interactionCooldown === 0) {
-                const amor = closestChar.interact();
-                amorLevel = Math.min(100, amorLevel + 5);
-                document.getElementById('amorLevel').textContent = amorLevel;
-                document.getElementById('gameInfo').textContent = `¡${closestChar.name} Amor: ${amor}%!`;
+                if (currentWeapon) {
+                    if (currentWeapon === 'poison') {
+                        closestChar.eliminate();
+                        showWarning(`☠️ ${closestChar.name} fue envenenada...`);
+                        sanity -= 20;
+                        obsesionLevel += 30;
+                        currentWeapon = null;
+                    } else if (currentWeapon === 'knife') {
+                        closestChar.eliminate();
+                        showWarning(`💀 ${closestChar.name} fue eliminada...`);
+                        sanity -= 30;
+                        obsesionLevel += 40;
+                        currentWeapon = null;
+                    } else if (currentWeapon === 'trap') {
+                        closestChar.eliminate();
+                        showWarning(`💥 ${closestChar.name} cayó en la trampa...`);
+                        sanity -= 15;
+                        obsesionLevel += 25;
+                        currentWeapon = null;
+                    } else if (currentWeapon === 'camera') {
+                        showWarning(`📸 Evidencia de ${closestChar.name} recopilada...`);
+                        obsesionLevel += 10;
+                    }
+                } else {
+                    closestChar.interact();
+                    document.getElementById('gameInfo').textContent = `💬 Hablaste con ${closestChar.name}`;
+                    obsesionLevel = Math.min(100, obsesionLevel + 10);
+                }
                 interactionCooldown = 30;
             }
         });
         
         document.getElementById('actionBtn').addEventListener('click', () => {
             if (interactionCooldown === 0) {
-                document.getElementById('gameInfo').textContent = '💝 ¡Acción especial!';
-                interactionCooldown = 20;
+                document.getElementById('gameInfo').textContent = '💀 Acción especial en modo silencioso...';
+                sanity -= 10;
+                obsesionLevel += 20;
+                interactionCooldown = 40;
             }
         });
         
@@ -476,13 +649,29 @@
             const minutes = gameTime % 60;
             document.getElementById('time').textContent = 
                 `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+            sanity = Math.max(0, sanity - 0.1);
+            obsesionLevel = Math.min(100, obsesionLevel);
+            
+            document.getElementById('amorLevel').textContent = Math.floor(obsesionLevel);
+            document.getElementById('sanity').textContent = Math.floor(sanity);
+            document.getElementById('sanityFill').style.width = sanity + '%';
+
+            if (sanity < 30) {
+                document.getElementById('gameInfo').textContent = '🔴 ¡Tu cordura está comprometida!';
+            }
+
+            if (sanity <= 0) {
+                document.getElementById('gameInfo').textContent = '💀 GAME OVER - Perdiste la cordura';
+                player.setVelocity(0, 0);
+            }
             
             if (interactionCooldown > 0) interactionCooldown--;
             
-            // Final del día
             if (gameTime > 18 * 60) {
-                document.getElementById('gameInfo').textContent = '¡Fin del día! Vuelve mañana.';
+                document.getElementById('gameInfo').textContent = '🌙 Fin del día...';
                 gameTime = 8 * 60;
+                sanity -= 20;
             }
             
             renderer.render(scene, camera);
