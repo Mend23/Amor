@@ -208,15 +208,21 @@
             border: 3px solid #ff1493;
             display: none;
             font-weight: bold;
+            animation: pulse 0.5s infinite;
         }
 
-        .sanity-bar {
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+
+        .reputation-bar {
             position: absolute;
             top: 10px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.9);
-            border: 2px solid #00ff00;
+            border: 2px solid #ff6600;
             width: 200px;
             height: 30px;
             border-radius: 15px;
@@ -224,11 +230,81 @@
             z-index: 10;
         }
 
-        .sanity-fill {
+        .reputation-fill {
             height: 100%;
             background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00);
             width: 100%;
             transition: width 0.3s;
+        }
+
+        .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: #ff1493;
+            font-size: 32px;
+            text-align: center;
+        }
+
+        .game-over-screen.show {
+            display: flex;
+        }
+
+        .game-over-text {
+            margin: 20px;
+            font-weight: bold;
+            animation: glitch 0.3s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .sempai-status {
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #ff1493;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 10;
+            pointer-events: auto;
+            border: 2px solid #ff1493;
+            max-width: 150px;
+        }
+
+        .police-alert {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: #ffff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10;
+            border: 2px solid #ffff00;
+            display: none;
+            font-weight: bold;
+            animation: blink 0.3s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
     </style>
 </head>
@@ -236,18 +312,28 @@
     <div id="gameContainer">
         <canvas id="canvas"></canvas>
         <div id="UI">
-            <div class="sanity-bar">
-                <div class="sanity-fill" id="sanityFill" style="width: 100%;"></div>
+            <div class="reputation-bar">
+                <div class="reputation-fill" id="reputationFill" style="width: 100%;"></div>
             </div>
 
             <div class="hud">
-                <div>❤️ Obsesión: <span id="amorLevel">0</span>%</div>
-                <div>🧠 Cordura: <span id="sanity">100</span>%</div>
+                <div>💕 Obsesión: <span id="obsesionLevel">0</span>%</div>
+                <div>⭐ Reputación: <span id="reputation">100</span>%</div>
                 <div>⏱️ Hora: <span id="time">8:00</span></div>
+            </div>
+
+            <div class="sempai-status">
+                <div>👑 Sempai</div>
+                <div id="sempaiStatus">😊 Normal</div>
+                <div id="sempaiObsesion">💕 0%</div>
             </div>
             
             <div class="objective">
-                <div id="objectiveText">Objetivo: Aléjate de rivales</div>
+                <div id="objectiveText">Objetivo: Acercate a Sempai</div>
+            </div>
+
+            <div class="police-alert" id="policeAlert">
+                🚨 ¡POLICIA ALERTA! 🚨
             </div>
 
             <div class="inventory" id="inventory">
@@ -273,6 +359,11 @@
 
             <div class="warning" id="warning"></div>
         </div>
+    </div>
+
+    <div class="game-over-screen" id="gameOverScreen">
+        <div class="game-over-text" id="gameOverText"></div>
+        <button onclick="location.reload()" style="width: 150px; height: 50px; font-size: 16px; margin-top: 40px;">REINICIAR</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -304,7 +395,8 @@
         scene.add(ambientLight);
 
         let currentWeapon = null;
-        let gameState = 'normal'; // normal, eliminating
+        let gameState = 'normal';
+        let gameOver = false;
         
         // ================== PLAYER ==================
         class Player {
@@ -324,7 +416,7 @@
                 this.head.position.y = 35;
                 this.group.add(this.head);
                 
-                // Ojos (rojo oscuro)
+                // Ojos (rojo oscuro - obsesionado)
                 for (let i = -1; i <= 1; i += 2) {
                     const eyeGeometry = new THREE.SphereGeometry(3, 8, 8);
                     const eyeMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
@@ -343,7 +435,6 @@
                 this.group.position.x += this.velocity.x;
                 this.group.position.y += this.velocity.y;
                 
-                // Limites de pantalla
                 const limit = 300;
                 this.group.position.x = Math.max(-limit, Math.min(limit, this.group.position.x));
                 this.group.position.y = Math.max(-limit, Math.min(limit, this.group.position.y));
@@ -357,13 +448,13 @@
         
         // ================== PERSONAJES ==================
         class Character {
-            constructor(name, x, y, color, isRival = false) {
+            constructor(name, x, y, color, type = 'normal') {
                 this.name = name;
                 this.group = new THREE.Group();
-                this.obsesionValue = 0;
-                this.isRival = isRival;
+                this.type = type; // 'normal', 'rival', 'sempai', 'police'
                 this.alive = true;
                 this.suspicion = 0;
+                this.observedCrimes = 0;
                 
                 // Cuerpo
                 const bodyGeometry = new THREE.CapsuleGeometry(18, 38, 4, 8);
@@ -379,7 +470,11 @@
                 this.group.add(this.head);
                 
                 // Ojos
-                const eyeColor = isRival ? 0x00ff00 : 0xff1493;
+                let eyeColor = 0xff1493;
+                if (type === 'rival') eyeColor = 0x00ff00;
+                if (type === 'sempai') eyeColor = 0xffff00;
+                if (type === 'police') eyeColor = 0x00ccff;
+
                 for (let i = -1; i <= 1; i += 2) {
                     const eyeGeometry = new THREE.SphereGeometry(2.5, 8, 8);
                     const eyeMaterial = new THREE.MeshPhongMaterial({ color: eyeColor });
@@ -410,21 +505,23 @@
                 const dy = playerPos.y - this.group.position.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // Moverse aleatoriamente
                 if (Math.random() < 0.02) {
                     const angle = Math.random() * Math.PI * 2;
                     this.group.position.x += Math.cos(angle) * 2;
                     this.group.position.y += Math.sin(angle) * 2;
                 }
                 
-                // Actualizar etiqueta
                 const screenPos = getScreenPosition(this.group.position);
                 this.nameLabel.style.left = (screenPos.x - 30) + 'px';
                 this.nameLabel.style.top = (screenPos.y - 50) + 'px';
 
-                if (this.isRival && distance < 100) {
+                if (this.type === 'rival' && distance < 100) {
                     this.suspicion = Math.min(100, this.suspicion + 0.5);
                     this.nameLabel.style.color = `rgb(0, ${Math.floor(255 * this.suspicion / 100)}, 0)`;
+                }
+
+                if (this.type === 'police' && distance < 150) {
+                    this.suspicion = Math.min(100, this.suspicion + 2);
                 }
                 
                 return distance;
@@ -442,15 +539,6 @@
                     return true;
                 }
                 return false;
-            }
-            
-            interact() {
-                if (this.isRival) {
-                    this.obsesionValue = Math.max(0, this.obsesionValue - 5);
-                } else {
-                    this.obsesionValue = Math.min(100, this.obsesionValue + 15);
-                }
-                return this.obsesionValue;
             }
         }
         
@@ -473,26 +561,40 @@
                 warning.style.display = 'none';
             }, 3000);
         }
+
+        function endGame(reason) {
+            gameOver = true;
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const gameOverText = document.getElementById('gameOverText');
+            gameOverText.textContent = reason;
+            gameOverScreen.classList.add('show');
+            player.setVelocity(0, 0);
+        }
         
         // ================== INICIALIZAR JUEGO ==================
         const player = new Player();
-        const characters = [
-            new Character('Sakura 💗', 150, 0, 0xff69b4, false),
-            new Character('Rival 👑', -200, 100, 0x00ff00, true),
-            new Character('Amiga 💙', 100, -200, 0x87ceeb, false),
-        ];
+        
+        const sempai = new Character('Sempai ✨', 200, 100, 0xffff00, 'sempai');
+        const rival = new Character('Rival 👑', -200, 100, 0x00ff00, 'rival');
+        const friend = new Character('Amiga 💙', 100, -200, 0x87ceeb, 'normal');
+        const police = new Character('Policía 🚨', -300, -300, 0x00ccff, 'police');
+        
+        const characters = [sempai, rival, friend, police];
         
         let gameTime = 8 * 60;
         let obsesionLevel = 0;
-        let sanity = 100;
+        let reputation = 100;
         let interactionCooldown = 0;
+        let sempaiAffection = 0;
+        let sempaiKnowsAboutCrimes = false;
+        let policeAlertLevel = 0;
+        let crimesCommitted = 0;
         
         // ================== CONTROLES ==================
         const keys = {};
         let joystickActive = false;
         let joystickPos = { x: 0, y: 0 };
         
-        // Touch controls para joystick
         const joystickElement = document.getElementById('joystick');
         const controlsContainer = document.querySelector('.controls');
         
@@ -555,8 +657,9 @@
             document.getElementById('gameInfo').textContent = msg;
         }
         
-        // Botones de acción
         document.getElementById('interactBtn').addEventListener('click', () => {
+            if (gameOver) return;
+
             let closestChar = null;
             let closestDist = Infinity;
             
@@ -573,48 +676,62 @@
             });
             
             if (closestChar && interactionCooldown === 0) {
-                if (currentWeapon) {
+                if (closestChar.type === 'sempai') {
+                    // Interacción con Sempai
+                    sempaiAffection += 15;
+                    obsesionLevel += 20;
+                    document.getElementById('gameInfo').textContent = `💕 ¡Sempai te miró!`;
+                    
+                    if (sempaiAffection > 50 && sempaiKnowsAboutCrimes) {
+                        endGame('💀 SEMPAI LO DESCUBRIÓ...\n"¿Qué has hecho?"\n*Ella enloqueció y te mató*\n*Luego se suicidó*');
+                    }
+                } else if (currentWeapon) {
                     if (currentWeapon === 'poison') {
                         closestChar.eliminate();
                         showWarning(`☠️ ${closestChar.name} fue envenenada...`);
-                        sanity -= 20;
+                        reputation -= 20;
                         obsesionLevel += 30;
+                        crimesCommitted++;
+                        policeAlertLevel += 15;
                         currentWeapon = null;
                     } else if (currentWeapon === 'knife') {
                         closestChar.eliminate();
                         showWarning(`💀 ${closestChar.name} fue eliminada...`);
-                        sanity -= 30;
+                        reputation -= 30;
                         obsesionLevel += 40;
+                        crimesCommitted++;
+                        policeAlertLevel += 25;
                         currentWeapon = null;
                     } else if (currentWeapon === 'trap') {
                         closestChar.eliminate();
                         showWarning(`💥 ${closestChar.name} cayó en la trampa...`);
-                        sanity -= 15;
+                        reputation -= 25;
                         obsesionLevel += 25;
+                        crimesCommitted++;
+                        policeAlertLevel += 20;
                         currentWeapon = null;
                     } else if (currentWeapon === 'camera') {
                         showWarning(`📸 Evidencia de ${closestChar.name} recopilada...`);
                         obsesionLevel += 10;
                     }
                 } else {
-                    closestChar.interact();
                     document.getElementById('gameInfo').textContent = `💬 Hablaste con ${closestChar.name}`;
-                    obsesionLevel = Math.min(100, obsesionLevel + 10);
+                    reputation = Math.min(100, reputation + 5);
                 }
                 interactionCooldown = 30;
             }
         });
         
         document.getElementById('actionBtn').addEventListener('click', () => {
+            if (gameOver) return;
             if (interactionCooldown === 0) {
                 document.getElementById('gameInfo').textContent = '💀 Acción especial en modo silencioso...';
-                sanity -= 10;
                 obsesionLevel += 20;
+                policeAlertLevel += 5;
                 interactionCooldown = 40;
             }
         });
         
-        // Controles por teclado
         function handleKeyboardInput() {
             let moveX = 0;
             let moveY = 0;
@@ -636,6 +753,11 @@
         function animate() {
             requestAnimationFrame(animate);
             
+            if (gameOver) {
+                renderer.render(scene, camera);
+                return;
+            }
+            
             handleKeyboardInput();
             player.update();
             
@@ -650,28 +772,62 @@
             document.getElementById('time').textContent = 
                 `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 
-            sanity = Math.max(0, sanity - 0.1);
+            // Reputación y Obsesión
+            reputation = Math.max(0, reputation - 0.05);
             obsesionLevel = Math.min(100, obsesionLevel);
             
-            document.getElementById('amorLevel').textContent = Math.floor(obsesionLevel);
-            document.getElementById('sanity').textContent = Math.floor(sanity);
-            document.getElementById('sanityFill').style.width = sanity + '%';
+            document.getElementById('obsesionLevel').textContent = Math.floor(obsesionLevel);
+            document.getElementById('reputation').textContent = Math.floor(reputation);
+            document.getElementById('reputationFill').style.width = reputation + '%';
 
-            if (sanity < 30) {
-                document.getElementById('gameInfo').textContent = '🔴 ¡Tu cordura está comprometida!';
+            // Estado de Sempai
+            const sempaiStatusDiv = document.getElementById('sempaiStatus');
+            const sempaiObsesionDiv = document.getElementById('sempaiObsesion');
+
+            if (sempaiKnowsAboutCrimes) {
+                sempaiStatusDiv.textContent = '😱 ¡ASUSTADO!';
+                sempaiStatusDiv.style.color = '#ff0000';
+            } else if (sempaiAffection > 60) {
+                sempaiStatusDiv.textContent = '😍 Enamorado';
+                sempaiStatusDiv.style.color = '#ff1493';
+            } else if (sempaiAffection > 30) {
+                sempaiStatusDiv.textContent = '😊 Interesado';
+                sempaiStatusDiv.style.color = '#ffff00';
+            } else {
+                sempaiStatusDiv.textContent = '😊 Normal';
+                sempaiStatusDiv.style.color = '#00ff00';
             }
 
-            if (sanity <= 0) {
-                document.getElementById('gameInfo').textContent = '💀 GAME OVER - Perdiste la cordura';
-                player.setVelocity(0, 0);
+            sempaiObsesionDiv.textContent = `💕 ${Math.floor(sempaiAffection)}%`;
+
+            // Alerta Policial
+            policeAlertLevel = Math.max(0, policeAlertLevel - 0.1);
+
+            if (policeAlertLevel > 50) {
+                document.getElementById('policeAlert').style.display = 'block';
+            } else {
+                document.getElementById('policeAlert').style.display = 'none';
+            }
+
+            // Condiciones de Game Over
+            if (reputation <= 0) {
+                endGame('💀 FIN DEL JUEGO\n\nTu reputación llegó a cero...\nSempai y los demás te humillaron\nNadie te respeta...\nEres un fracaso.');
+            }
+
+            if (policeAlertLevel >= 100) {
+                endGame('🚨 ATRAPADA 🚨\n\n¡La policía descubrió tus crímenes!\nTodas tus acciones han sido documentadas.\nNo hay escape...');
+            }
+
+            if (crimesCommitted > 0 && Math.random() < 0.01 && !sempaiKnowsAboutCrimes) {
+                sempaiKnowsAboutCrimes = true;
+                showWarning('💔 ¡Sempai se enteró de tus actos!');
             }
             
             if (interactionCooldown > 0) interactionCooldown--;
             
             if (gameTime > 18 * 60) {
-                document.getElementById('gameInfo').textContent = '🌙 Fin del día...';
                 gameTime = 8 * 60;
-                sanity -= 20;
+                reputation -= 10;
             }
             
             renderer.render(scene, camera);
