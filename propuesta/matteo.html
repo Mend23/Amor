@@ -45,8 +45,8 @@
     animation-duration: 90s;
   }
   @keyframes drift{
-    from{transform: translateY(0) rotate(0);}
-    to{transform: translateY(-200px) rotate(360deg);}
+    from{transform: translateY(0) rotate(0);} 
+    to{transform: translateY(-200px) rotate(360deg);} 
   }
 
   /* Center stage */
@@ -58,6 +58,8 @@
     align-items:center;
     justify-content:center;
     z-index:2;
+    padding:40px;
+    box-sizing:border-box;
   }
 
   /* White card */
@@ -70,6 +72,7 @@
     text-align:center;
     color:var(--text);
     position:relative;
+    overflow:hidden;
   }
 
   .question {
@@ -82,5 +85,156 @@
     border-radius:10px;
     position:relative;
     background: linear-gradient(90deg, rgba(255,255,255,1), rgba(255,255,255,1));
-    /* Slight shiny edges */
-    box-shadow*
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    margin-bottom:12px;
+  }
+
+  .sub {
+    color:#444;
+    margin:6px 0 18px;
+    font-size:15px;
+  }
+
+  .buttons{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    margin-top:18px;
+    flex-wrap:wrap;
+  }
+
+  .btn{
+    --h:44px;
+    height:var(--h);
+    line-height:var(--h);
+    min-width:160px;
+    padding:0 18px;
+    border-radius:999px;
+    border:0;
+    cursor:pointer;
+    font-weight:700;
+    font-size:15px;
+    transition:transform .14s ease, box-shadow .14s ease, opacity .14s ease;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  }
+  .btn:active{transform:translateY(2px) scale(.995)}
+
+  .btn-yes{
+    background: linear-gradient(90deg, #ffd166, #ff9a66);
+    color:#2b2b2b;
+  }
+  .btn-no{
+    background:transparent;
+    color:#555;
+    border:1px solid #eee;
+  }
+
+  /* small footer */
+  .credit{
+    font-size:12px;
+    color:#777;
+    margin-top:14px;
+  }
+
+  /* success overlay */
+  .overlay{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.6));
+    z-index:10;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .3s ease;
+  }
+  .overlay.show{opacity:1;pointer-events:auto}
+
+  .popup{
+    background: rgba(255,255,255,0.98);
+    color:var(--text);
+    padding:28px 30px;
+    border-radius:14px;
+    text-align:center;
+    transform:scale(.9);
+    transition:transform .35s cubic-bezier(.2,.9,.3,1);
+    box-shadow: 0 18px 60px rgba(0,0,0,0.45);
+  }
+  .overlay.show .popup{transform:scale(1)}
+
+  .heart{
+    font-size:48px;
+    color:#ff4d6d;
+    display:inline-block;
+    transform:scale(0.9);
+    animation:beat 1s infinite ease-in-out;
+  }
+  @keyframes beat{
+    0%{transform:scale(0.95)}
+    50%{transform:scale(1.06)}
+    100%{transform:scale(0.95)}
+  }
+
+  /* responsive small tweaks */
+  @media (max-width:420px){
+    .card{padding:24px 16px}
+    .buttons{flex-direction:column}
+    .btn{min-width:100%}
+  }
+
+</style>
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+  <main class="stage">
+    <section class="card" role="article" aria-labelledby="q">
+      <h1 id="q" class="question">¿Quieres vivir una vida entera conmigo?</h1>
+      <p class="sub">Hace tiempo que quería preguntártelo. Si dices que sí, prometo que cada día será una pequeña aventura.</p>
+
+      <div class="buttons">
+        <button class="btn btn-yes" id="yesBtn">Sí, para siempre</button>
+        <button class="btn btn-no" id="noBtn">Espera... ¿seguro?</button>
+      </div>
+
+      <p class="credit">— Con cariño, Matteo</p>
+    </section>
+  </main>
+
+  <div id="overlay" class="overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="popup" id="popup">
+      <div class="heart" aria-hidden="true">❤️</div>
+      <h2 id="resTitle">¡Sí!</h2>
+      <p id="resText">Me llenas de felicidad. Empezamos esta aventura juntos.</p>
+      <p style="margin-top:14px"><button class="btn btn-yes" id="closeBtn">Abrazos</button></p>
+    </div>
+  </div>
+
+<script>
+  const yesBtn = document.getElementById('yesBtn');
+  const noBtn = document.getElementById('noBtn');
+  const overlay = document.getElementById('overlay');
+  const closeBtn = document.getElementById('closeBtn');
+
+  yesBtn.addEventListener('click', ()=>{
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden','false');
+    // small celebration: change stars opacity and add gentle glow
+    document.documentElement.style.setProperty('--bg','#060618');
+  });
+  closeBtn.addEventListener('click', ()=>{
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden','true');
+  });
+
+  // playful evasive behavior for "No" button on pointerover
+  noBtn.addEventListener('pointerenter', (e)=>{
+    const w = window.innerWidth;
+    const moveX = (Math.random()*0.5 + 0.25) * (Math.random() < 0.5 ? -1 : 1) * w * 0.2;
+    noBtn.style.transform = `translateX(${moveX}px)`;
+  });
+  noBtn.addEventListener('pointerleave', ()=>{ noBtn.style.transform = '' });
+
+</script>
+</body>
+</html>
