@@ -1,1 +1,39 @@
-
+    <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+    <title>Para Matteo ✨</title><style>
+    body{margin:0;background:white;font-family:Arial;overflow:hidden}
+    #pantalla1{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh}
+    .pregunta{font-size:2em;color:black;margin-bottom:30px}
+    .botones{display:flex;gap:30px}
+    button{padding:15px 40px;font-size:1.2em;border:2px solid black;background:white;cursor:pointer;border-radius:10px}
+    #btnNo{position:relative}#btnSi:hover{background:black;color:white}
+       #pantallaCarga{display:none;background:black;color:white;height:100vh;justify-content:center;align-items:center;flex-direction:column}
+    .loader{border:5px solid #333;border-top:5px solid white;border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite}
+    @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+    #sistemaSolar{display:none;background:black;color:white;min-height:100vh;text-align:center;padding:20px}
+    .planetas{display:flex;justify-content:center;gap:20px;flex-wrap:wrap}
+    .planeta{cursor:pointer;width:80px}.planeta div{width:60px;height:60px;border-radius:50%;margin:0 auto}
+         #merc{background:#b1b1b1}#venus{background:#e6c229}#tierra{background:#2a7fff}
+    #marte{background:#c1440e}#jupiter{background:#d8ca9d}#saturno{background:#e3d4a1}
+    #urano{background:#7ec8e3}#neptuno{background:#4169e1}
+    #mensajePlaneta{margin-top:40px;display:none}</style></head><body>
+          <audio id="musica" loop><source src="https://cdn.pixabay.com/audio/2024/04/11/audio_2b6a1e8b1e.mp3"></audio>
+    <div id="pantalla1"><h1 class="pregunta">¿Quieres vivir una vida entera conmigo?</h1>
+    <div class="botones"><button id="btnSi">Sí</button><button id="btnNo">No</button></div></div>
+    <div id="pantallaCarga"><div class="loader"></div><p>Lo que quiero decirte mi amor...</p></div>
+          <div id="sistemaSolar"><h1>Nuestro Sistema Solar 💜</h1><div class="planetas">
+    <div class="planeta" onclick="mostrarPlaneta('merc')"><div id="merc"></div><p>Mercurio</p></div>
+    <div class="planeta" onclick="mostrarPlaneta('venus')"><div id="venus"></div><p>Venus</p></div>
+    <div class="planeta" onclick="mostrarPlaneta('tierra')"><div id="tierra"></div><p>Tierra</p></div>
+    <div class="planeta" onclick="mostrarPlaneta('marte')"><div id="marte"></div><p>Marte</p></div>
+    <div class="planeta" onclick="mostrarPlaneta('jupiter')"><div id="jupiter"></div><p>Júpiter</p></div>
+    <div class="planeta" onclick="mostrarPlaneta('saturno')"><div id="saturno"></div><p>Saturno</p></div>
+    <div class="planeta" onclick="mostrarPlaneta('urano')"><div id="urano"></div><p>Urano</p></div>
+    <div class="planeta" onclick="mostrarPlaneta('neptuno')"><div id="neptuno"></div><p>Neptuno</p></div>
+    </div><div id="mensajePlaneta"></div></div>
+          <script>const btnNo=document.getElementById('btnNo'),btnSi=document.getElementById('btnSi'),musica=document.getElementById('musica');
+    btnNo.onmouseover=()=>{btnNo.style.position='absolute';btnNo.style.left=Math.random()*(window.innerWidth-150)+'px';btnNo.style.top=Math.random()*(window.innerHeight-150)+'px'};
+    btnSi.onclick=()=>{musica.play();document.getElementById('pantalla1').innerHTML="<h1 style='color:white'>Gracias por aceptar, te amo muack</h1>";
+    setTimeout(()=>{document.getElementById('pantalla1').style.display='none';document.getElementById('pantallaCarga').style.display='flex';
+    setTimeout(()=>{document.getElementById('pantallaCarga').style.display='none';document.getElementById('sistemaSolar').style.display='block'},2000)},2000)};
+    function mostrarPlaneta(p){const d={merc:['Mercurio','Eres lo primero'],venus:['Venus','Me das calor'],tierra:['Tierra','Me das seguridad'],marte:['Marte','Contigo soy guerrero'],jupiter:['Júpiter','Eres gigante'],saturno:['Saturno','Todo se ve hermoso'],urano:['Urano','Eres único'],neptuno:['Neptuno','Tu viento me calma']};
+    document.getElementById('mensajePlaneta').innerHTML=`<h2>${d[p][0]}</h2><p>${d[p][1]}</p>`;document.getElementById('mensajePlaneta').style.display='block'}</script></body></html>
