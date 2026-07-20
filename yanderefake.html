@@ -387,6 +387,23 @@
             0% { transform: scale(0); }
             100% { transform: scale(1); }
         }
+
+        .witness-status {
+            position: absolute;
+            bottom: 140px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: #ffff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10;
+            border: 2px solid #ffff00;
+            display: none;
+            font-weight: bold;
+            animation: blink 0.3s infinite;
+        }
     </style>
 </head>
 <body>
@@ -411,6 +428,10 @@
             
             <div class="objective">
                 <div id="objectiveText">Objetivo: Acercate a Sempai</div>
+            </div>
+
+            <div class="witness-status" id="witnessStatus">
+                🏃 ¡TESTIGO HUYENDO! - ¡PERSIGUE!
             </div>
 
             <div class="police-alert" id="policeAlert">
@@ -488,6 +509,7 @@
         let gameState = 'normal';
         let gameOver = false;
         let inDialogue = false;
+        let directWitness = false;
         
         // ================== PLAYER ==================
         class Player {
@@ -550,7 +572,9 @@
                 this.observedRudeness = 0;
                 this.viewDistance = 150;
                 this.isReporting = false;
+                this.reportProgress = 0;
                 this.targetDirection = null;
+                this.witnessedCrimeDirect = false;
                 
                 // Cuerpo
                 const bodyGeometry = new THREE.CapsuleGeometry(18, 38, 4, 8);
@@ -590,7 +614,7 @@
                 scene.add(this.group);
             }
             
-            update(playerPos, crimeJustCommitted = false, playerWasRude = false) {
+            update(playerPos, crimeJustCommitted = false, playerWasRude = false, playerHasWeapon = false) {
                 if (!this.alive) {
                     this.group.visible = false;
                     this.nameLabel.style.display = 'none';
@@ -630,8 +654,10 @@
                 if (crimeJustCommitted && distance < this.viewDistance && !this.isReporting) {
                     this.observedCrimes++;
                     this.suspicion = 100;
-                    this.isReporting = true; // ¡CORRE A REPORTAR!
+                    this.witnessedCrimeDirect = true;
+                    this.isReporting = true;
                     document.getElementById('gameInfo').textContent = `🏃 ¡${this.name} CORRE A LA DIRECCIÓN!`;
+                    document.getElementById('witnessStatus').style.display = 'block';
                 }
 
                 // Si eres grosero cerca de alguien, lo ve
@@ -696,7 +722,7 @@
             let totalSuspicion = 0;
             characters.forEach(char => {
                 if (char.isReporting) {
-                    totalSuspicion += 50; // Penalización alta por fuga
+                    totalSuspicion += 50;
                 } else {
                     totalSuspicion += char.observedCrimes + char.observedRudeness;
                 }
@@ -708,19 +734,45 @@
             inDialogue = true;
             player.setVelocity(0, 0);
             
-            const excuses = [
-                { text: "No fue nada, Director. Solo estaban jugando.", result: 'random' },
-                { text: "Vimos algo en el patio, pero ya pasó.", result: 'random' },
-                { text: "Creo que malinterpretaron la situación.", result: 'likely_fail' },
-                { text: "Fue un accidente. Todo está bajo control.", result: 'random' },
-                { text: "No sé de qué hablan. Están exagerando.", result: 'likely_fail' }
-            ];
+            let excuses = [];
+
+            // Encontrar el testigo que reportó
+            let reportingWitness = characters.find(char => char.isReporting === false && char.observedCrimes > 0);
+
+            if (directWitness) {
+                // Te vieron cometiendo el crimen
+                excuses = [
+                    { text: "💰 SOBORNAR AL TESTIGO", result: 'bribe' },
+                    { text: "🔒 'Eso es mentira'", result: 'random' },
+                    { text: "❓ 'No sé de qué hablan'", result: 'likely_fail' }
+                ];
+            } else if (currentWeapon) {
+                // Te ven con un arma
+                excuses = [
+                    { text: "📦 'Solo estaba llevando el objeto a su sitio'", result: 'likely_pass' },
+                    { text: "🔒 'Eso es mentira'", result: 'random' },
+                    { text: "❓ 'No sé de qué hablan'", result: 'likely_fail' }
+                ];
+            } else {
+                // Caso general
+                excuses = [
+                    { text: "😊 'Solo estaban jugando'", result: 'random' },
+                    { text: "👀 'Vimos algo en el patio, pero ya pasó'", result: 'random' },
+                    { text: "🔒 'Eso es mentira'", result: 'random' },
+                    { text: "❓ 'No sé de qué hablan'", result: 'likely_fail' }
+                ];
+            }
 
             const dialogBox = document.getElementById('principalDialog');
             const dialogText = document.getElementById('dialogText');
             const excuseButtons = document.getElementById('excuseButtons');
 
-            dialogText.textContent = '¿Qué pasó exactamente aquí?';
+            if (directWitness) {
+                dialogText.textContent = '¿QUÉ HICISTE? Te vieron...';
+            } else {
+                dialogText.textContent = '¿Qué pasó exactamente aquí?';
+            }
+
             excuseButtons.innerHTML = '';
 
             excuses.forEach((excuse, index) => {
@@ -740,7 +792,17 @@
         function handleExcuse(result) {
             inDialogue = false;
             
-            if (result === 'random') {
+            if (result === 'bribe') {
+                if (Math.random() > 0.4) {
+                    document.getElementById('gameInfo').textContent = '✅ Soborno aceptado... Silencio.';
+                    reputation = Math.min(100, reputation + 15);
+                    directWitness = false;
+                } else {
+                    document.getElementById('gameInfo').textContent = '❌ El testigo rechazó... "¡Lo contaré!"';
+                    reputation = Math.max(0, reputation - 50);
+                    directWitness = false;
+                }
+            } else if (result === 'random') {
                 if (Math.random() > 0.5) {
                     document.getElementById('gameInfo').textContent = '✅ Director: "De acuerdo, ten cuidado"';
                     reputation = Math.min(100, reputation + 10);
@@ -748,6 +810,16 @@
                     document.getElementById('gameInfo').textContent = '❌ Director: "No me crees... eres culpable"';
                     reputation = Math.max(0, reputation - 30);
                 }
+                directWitness = false;
+            } else if (result === 'likely_pass') {
+                if (Math.random() > 0.3) {
+                    document.getElementById('gameInfo').textContent = '✅ Director: "Tiene sentido. Continúa."';
+                    reputation = Math.min(100, reputation + 20);
+                } else {
+                    document.getElementById('gameInfo').textContent = '❌ Director: "¿Segura? No me convence."';
+                    reputation = Math.max(0, reputation - 25);
+                }
+                directWitness = false;
             } else if (result === 'likely_fail') {
                 if (Math.random() > 0.3) {
                     document.getElementById('gameInfo').textContent = '❌ Director: "¡Mentirosa! Llamaré a tus padres"';
@@ -756,6 +828,7 @@
                     document.getElementById('gameInfo').textContent = '✅ Director: "Espero que sea verdad..."';
                     reputation = Math.min(100, reputation + 5);
                 }
+                directWitness = false;
             }
         }
         
@@ -779,6 +852,7 @@
         let crimesCommitted = 0;
         let lastCrimeTime = -1000;
         let waitingForDirector = false;
+        let targetWitness = null;
         
         // ================== CONTROLES ==================
         const keys = {};
@@ -842,7 +916,7 @@
                 case 'poison': msg = '☠️ Veneno seleccionado'; break;
                 case 'knife': msg = '🔴 Cuchillo listo'; break;
                 case 'trap': msg = '⚠️ Trampa preparada'; break;
-                case 'camera': msg = '📸 Espiar modo'; break;
+                case 'camera': msg = '📷 Espiar modo'; break;
             }
             document.getElementById('gameInfo').textContent = msg;
         }
@@ -864,6 +938,17 @@
                     closestChar = char;
                 }
             });
+
+            // Matar testigo que está huyendo
+            if (closestChar && closestChar.isReporting && currentWeapon === 'knife') {
+                closestChar.eliminate();
+                closestChar.isReporting = false;
+                document.getElementById('gameInfo').textContent = `💀 ${closestChar.name} no llegará a la dirección...`;
+                document.getElementById('witnessStatus').style.display = 'none';
+                waitingForDirector = false;
+                showWarning('🤐 Testigo silenciado. Sin reporte.');
+                return;
+            }
             
             if (closestChar && interactionCooldown === 0) {
                 if (closestChar.type === 'sempai') {
@@ -875,7 +960,10 @@
                         endGame('💀 SEMPAI LO DESCUBRIÓ...\n"¿Qué has hecho?"\n*Ella enloqueció y te mató*\n*Luego se suicidó*');
                     }
                 } else if (currentWeapon) {
+                    // Cometer crimen
                     lastCrimeTime = gameTime;
+                    directWitness = true;
+                    targetWitness = closestChar;
                     let crimeMsg = '';
                     
                     if (currentWeapon === 'poison') {
@@ -953,9 +1041,10 @@
             // Detectar si acaban de cometer un crimen
             let crimeJustCommitted = (gameTime - lastCrimeTime) < 2;
             let playerWasRude = player.wasRude;
+            let playerHasWeapon = currentWeapon !== null;
             
             characters.forEach(char => {
-                char.update(player.group.position, crimeJustCommitted, playerWasRude);
+                char.update(player.group.position, crimeJustCommitted, playerWasRude, playerHasWeapon);
             });
 
             // Limpiar estado grosería
